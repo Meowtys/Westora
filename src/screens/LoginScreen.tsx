@@ -18,7 +18,7 @@ import { getUser, saveUser } from '../storage/storage';
 
 type Props = { navigation: NativeStackNavigationProp<RootStackParamList, 'Login'> };
 
-const { width } = Dimensions.get('window');
+Dimensions.get('window');
 
 export default function LoginScreen({ navigation }: Props) {
   const [name, setName] = useState('');

@@ -2,7 +2,6 @@ import React, { useCallback, useState } from 'react';
 import { SafeAreaView, View, Text, ScrollView, StyleSheet } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { getTransactions } from '../storage/storage';
-import { Transaction } from '../types';
 
 type MonthlySummary = {
   month: string;
