@@ -82,7 +82,7 @@ export default function HomeScreen({ navigation }: Props) {
           <View style={styles.headerLeft}>
             <Text style={styles.greeting}>Welcome back,</Text>
             <View style={styles.nameRow}>
-              <Text style={styles.userName}>{userName}</Text>
+              <Text style={styles.userName} numberOfLines={1} ellipsizeMode="tail">{userName}</Text>
               <Pressable onPress={handleEditName} style={styles.editButton}>
                 <Text style={styles.editIcon}>✏️</Text>
               </Pressable>
@@ -213,9 +213,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    maxWidth: '50%',
   },
   editButton: {
     padding: 4,
+    flexShrink: 0,
   },
   greeting: {
     fontSize: 14,
