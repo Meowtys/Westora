@@ -9,6 +9,8 @@ import {
   Alert,
   Image,
   Dimensions,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types';
@@ -47,8 +49,12 @@ export default function LoginScreen({ navigation }: Props) {
 
   return (
     <SafeAreaView style={styles.safe}>
-      {/* Main content */}
-      <View style={styles.container}>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardAvoid}
+      >
+        {/* Main content */}
+        <View style={styles.container}>
         {/* Logo */}
         <Image
           source={require('../assets/logo.png')}
@@ -100,24 +106,8 @@ export default function LoginScreen({ navigation }: Props) {
             <Text style={styles.btnText}>{isNew ? 'Create Account' : 'Login'}</Text>
           </Pressable>
         </View>
-      </View>
-
-      {/* Bottom decorative area */}
-      <View style={styles.bottomDecor}>
-        {/* Wave shape simulation */}
-        <View style={styles.wave} />
-
-        {/* Chart bars */}
-        <View style={styles.chartArea}>
-          <View style={[styles.bar, { height: 60 }]} />
-          <View style={[styles.bar, { height: 90 }]} />
-          <View style={[styles.bar, { height: 120 }]} />
         </View>
-
-        {/* Dot on line */}
-        <View style={styles.dotLine} />
-        <View style={styles.dot} />
-      </View>
+      </KeyboardAvoidingView>
 
       {/* Footer */}
       <View style={styles.footer}>
@@ -132,6 +122,9 @@ const styles = StyleSheet.create({
   safe: {
     flex: 1,
     backgroundColor: '#EEF0F8',
+  },
+  keyboardAvoid: {
+    flex: 1,
   },
   container: {
     flex: 1,
@@ -220,53 +213,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '700',
     fontSize: 16,
-  },
-  bottomDecor: {
-    height: 180,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  wave: {
-    position: 'absolute',
-    bottom: 0,
-    left: -20,
-    right: -20,
-    height: 160,
-    backgroundColor: '#D8EEF0',
-    borderTopLeftRadius: 80,
-    borderTopRightRadius: 120,
-  },
-  chartArea: {
-    position: 'absolute',
-    bottom: 40,
-    right: 24,
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: 8,
-  },
-  bar: {
-    width: 36,
-    backgroundColor: '#A8D8DC',
-    borderRadius: 6,
-    opacity: 0.7,
-  },
-  dotLine: {
-    position: 'absolute',
-    bottom: 100,
-    right: 40,
-    width: 140,
-    height: 1.5,
-    backgroundColor: '#2ECC9A',
-    transform: [{ rotate: '-20deg' }],
-  },
-  dot: {
-    position: 'absolute',
-    bottom: 108,
-    right: 160,
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: '#2ECC9A',
   },
   footer: {
     flexDirection: 'row',
