@@ -1,9 +1,9 @@
 import React, { useState, useCallback } from 'react';
-import { SafeAreaView, View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
+import { SafeAreaView, View, Text, Pressable, StyleSheet, ScrollView, Modal, TextInput, Alert } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types';
-import { getTransactions, getUser } from '../storage/storage';
+import { getTransactions, getUser, saveUser } from '../storage/storage';
 
 type Props = { navigation: NativeStackNavigationProp<RootStackParamList, 'Home'> };
 
@@ -12,6 +12,8 @@ export default function HomeScreen({ navigation }: Props) {
   const [income, setIncome] = useState(0);
   const [expense, setExpense] = useState(0);
   const [userName, setUserName] = useState('');
+  const [editMode, setEditMode] = useState(false);
+  const [editedName, setEditedName] = useState('');
 
   useFocusEffect(useCallback(() => {
     getUser().then(u => { if (u) setUserName(u.name); });
@@ -24,14 +26,67 @@ export default function HomeScreen({ navigation }: Props) {
     });
   }, []));
 
+  const handleEditName = () => {
+    setEditedName(userName);
+    setEditMode(true);
+  };
+
+  const handleSaveName = async () => {
+    if (!editedName.trim()) {
+      Alert.alert('Error', 'Name cannot be empty');
+      return;
+    }
+    const user = await getUser();
+    if (user) {
+      await saveUser(editedName.trim(), user.pin);
+      setUserName(editedName.trim());
+      setEditMode(false);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.safe}>
+      {/* Edit Name Modal */}
+      <Modal
+        visible={editMode}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setEditMode(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Edit Your Name</Text>
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Enter your name"
+              placeholderTextColor="#aaa"
+              value={editedName}
+              onChangeText={setEditedName}
+              autoFocus
+            />
+            <View style={styles.modalButtons}>
+              <Pressable style={[styles.modalBtn, styles.cancelBtn]} onPress={() => setEditMode(false)}>
+                <Text style={styles.cancelBtnText}>Cancel</Text>
+              </Pressable>
+              <Pressable style={[styles.modalBtn, styles.saveBtn]} onPress={handleSaveName}>
+                <Text style={styles.saveBtnText}>Save</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       <ScrollView contentContainerStyle={styles.container}>
         {/* Header */}
         <View style={styles.header}>
-          <View>
+          <View style={styles.headerLeft}>
             <Text style={styles.greeting}>Welcome back,</Text>
-            <Text style={styles.userName}>{userName}</Text>
+            <View style={styles.nameRow}>
+              <Text style={styles.userName}>{userName}</Text>
+              <Pressable onPress={handleEditName} style={styles.editButton}>
+                <Text style={styles.editIcon}>✏️</Text>
+              </Pressable>
+            </View>
           </View>
           <Text style={styles.headerIcon}>💰</Text>
         </View>
@@ -86,11 +141,81 @@ export default function HomeScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#F9FAFB' },
   container: { padding: 20, paddingTop: 12 },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 24,
+    width: '85%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#1F2937',
+    marginBottom: 16,
+  },
+  modalInput: {
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 15,
+    color: '#333',
+    marginBottom: 20,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  modalBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  cancelBtn: {
+    backgroundColor: '#F3F4F6',
+  },
+  cancelBtnText: {
+    color: '#6B7280',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  saveBtn: {
+    backgroundColor: '#4F46E5',
+  },
+  saveBtnText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 14,
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     marginBottom: 28,
+  },
+  headerLeft: {
+    flex: 1,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  editButton: {
+    padding: 4,
   },
   greeting: {
     fontSize: 14,
@@ -102,6 +227,9 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '800',
     color: '#1F2937',
+  },
+  editIcon: {
+    fontSize: 16,
   },
   headerIcon: {
     fontSize: 28,
