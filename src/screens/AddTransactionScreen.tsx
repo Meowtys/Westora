@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { SafeAreaView, View, Text, TextInput, Pressable, StyleSheet, Alert, ScrollView } from 'react-native';
+import { SafeAreaView, View, Text, TextInput, Pressable, StyleSheet, Alert, ScrollView, Image } from 'react-native';
+import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList, TransactionType } from '../types';
 import { saveTransaction } from '../storage/storage';
@@ -14,6 +15,37 @@ export default function AddTransactionScreen({ navigation }: Props) {
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState('Food');
   const [note, setNote] = useState('');
+  const [image, setImage] = useState<string | null>(null);
+
+  const handleTakePhoto = () => {
+    launchCamera({ mediaType: 'photo', saveToPhotos: true }, (response) => {
+      if (response.didCancel) return;
+      if (response.errorCode) {
+        Alert.alert('Error', 'Failed to take photo');
+        return;
+      }
+      if (response.assets && response.assets[0].uri) {
+        setImage(response.assets[0].uri);
+      }
+    });
+  };
+
+  const handlePickImage = () => {
+    launchImageLibrary({ mediaType: 'photo' }, (response) => {
+      if (response.didCancel) return;
+      if (response.errorCode) {
+        Alert.alert('Error', 'Failed to pick image');
+        return;
+      }
+      if (response.assets && response.assets[0].uri) {
+        setImage(response.assets[0].uri);
+      }
+    });
+  };
+
+  const handleRemoveImage = () => {
+    setImage(null);
+  };
 
   const handleSave = async () => {
     if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
@@ -60,6 +92,28 @@ export default function AddTransactionScreen({ navigation }: Props) {
         <Text style={styles.sectionLabel}>Note (optional)</Text>
         <TextInput style={[styles.input, styles.multiline]} placeholder="Add a note..."
           value={note} onChangeText={setNote} multiline />
+
+        <Text style={styles.sectionLabel}>Receipt (optional)</Text>
+        <View style={styles.imageButtonsRow}>
+          <Pressable style={[styles.imageBtn, styles.cameraBtn]} onPress={handleTakePhoto}>
+            <Text style={styles.imageBtnIcon}>📷</Text>
+            <Text style={styles.imageBtnText}>Take Photo</Text>
+          </Pressable>
+          <Pressable style={[styles.imageBtn, styles.galleryBtn]} onPress={handlePickImage}>
+            <Text style={styles.imageBtnIcon}>🖼️</Text>
+            <Text style={styles.imageBtnText}>Upload Image</Text>
+          </Pressable>
+        </View>
+
+        {image && (
+          <View style={styles.imagePreview}>
+            <Image source={{ uri: image }} style={styles.previewImage} />
+            <Pressable style={styles.removeImageBtn} onPress={handleRemoveImage}>
+              <Text style={styles.removeImageText}>✕ Remove</Text>
+            </Pressable>
+          </View>
+        )}
+
         <Pressable style={styles.saveBtn} onPress={handleSave}>
           <Text style={styles.saveBtnText}>Save Transaction</Text>
         </Pressable>
@@ -87,6 +141,19 @@ const styles = StyleSheet.create({
   catBtnActive:     { backgroundColor: '#4F46E5', borderColor: '#4F46E5' },
   catText:          { fontSize: 13, color: '#555' },
   catTextActive:    { color: '#fff' },
+  imageButtonsRow:  { flexDirection: 'row', gap: 12 },
+  imageBtn:         { flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center',
+                      borderWidth: 1.5, borderStyle: 'dashed' },
+  cameraBtn:        { borderColor: '#4F46E5', backgroundColor: '#F0F4FF' },
+  galleryBtn:       { borderColor: '#4F46E5', backgroundColor: '#F0F4FF' },
+  imageBtnIcon:     { fontSize: 24, marginBottom: 6 },
+  imageBtnText:     { fontSize: 12, color: '#4F46E5', fontWeight: '600' },
+  imagePreview:     { marginTop: 16, borderRadius: 12, overflow: 'hidden', backgroundColor: '#fff',
+                      borderWidth: 1, borderColor: '#ddd', padding: 12 },
+  previewImage:     { width: '100%', height: 200, borderRadius: 8, marginBottom: 8 },
+  removeImageBtn:   { paddingVertical: 8, paddingHorizontal: 12, backgroundColor: '#FEF2F2',
+                      borderRadius: 8, alignItems: 'center' },
+  removeImageText:  { fontSize: 13, color: '#EF4444', fontWeight: '600' },
   saveBtn:          { backgroundColor: '#4F46E5', padding: 16, borderRadius: 12,
                       alignItems: 'center', marginTop: 24 },
   saveBtnText:      { color: '#fff', fontWeight: '700', fontSize: 16 },
