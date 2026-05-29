@@ -38,9 +38,9 @@ export default function TransactionListScreen() {
     await deleteTransaction(editingTransaction.id);
     await saveTransaction(updatedTransaction);
     
-    setTransactions(prev => 
-      [...prev].map(t => t.id === editingTransaction.id ? updatedTransaction : t).reverse()
-    );
+    // Reload the transactions list
+    const txs = await getTransactions();
+    setTransactions([...txs].reverse());
     
     setEditMode(false);
     setEditingTransaction(null);
@@ -51,7 +51,9 @@ export default function TransactionListScreen() {
       { text: 'Cancel', style: 'cancel' },
       { text: 'Delete', style: 'destructive', onPress: async () => {
         await deleteTransaction(id);
-        setTransactions(prev => prev.filter(t => t.id !== id));
+        // Reload the transactions list
+        const txs = await getTransactions();
+        setTransactions([...txs].reverse());
       }},
     ]);
   };
