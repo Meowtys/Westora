@@ -87,6 +87,7 @@ export default function HomeScreen({ navigation }: Props) {
               placeholderTextColor="#aaa"
               value={editedName}
               onChangeText={setEditedName}
+              maxLength={24}
               autoFocus
             />
             <View style={styles.modalButtons}>

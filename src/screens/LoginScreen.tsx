@@ -150,6 +150,7 @@ export default function LoginScreen({ navigation }: Props) {
                   placeholderTextColor="#aaa"
                   value={name}
                   onChangeText={setName}
+                  maxLength={24}
                 />
               </View>
             )}
