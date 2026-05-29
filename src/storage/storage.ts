@@ -20,7 +20,16 @@ export async function getTransactions(): Promise<Transaction[]> {
 
 export async function saveTransaction(tx: Transaction): Promise<void> {
   const existing = await getTransactions();
-  existing.push(tx);
+  const existingIndex = existing.findIndex(t => t.id === tx.id);
+
+  if (existingIndex >= 0) {
+    // If it exists, update it right where it is to preserve list order
+    existing[existingIndex] = tx;
+  } else {
+    // If it doesn't exist, it's brand new, so push it
+    existing.push(tx);
+  }
+
   await AsyncStorage.setItem(TRANSACTIONS_KEY, JSON.stringify(existing));
 }
 

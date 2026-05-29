@@ -56,13 +56,13 @@ export default function TransactionListScreen() {
     }
     
     const updatedTransaction: Transaction = {
-      ...editingTransaction,
+      ...editingTransaction, // Spreads original data, including id and date
       amount: Number(editAmount),
       note: editNote.trim(),
       image: editImage, // Save the updated or removed image
     };
     
-    await deleteTransaction(editingTransaction.id);
+    // Pass directly to saveTransaction (which now handles updates in-place)
     await saveTransaction(updatedTransaction);
     
     // Reload the transactions list
@@ -328,7 +328,6 @@ const styles = StyleSheet.create({
   date:      { fontSize: 12, color: '#aaa', marginTop: 4 },
   amount:    { fontWeight: '700', fontSize: 15 },
   
-  // Updated Action Button Styles
   actionButtons: { 
     flexDirection: 'row', 
     gap: 10, 
