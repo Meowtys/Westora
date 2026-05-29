@@ -14,6 +14,7 @@ export default function HomeScreen({ navigation }: Props) {
   const [userName, setUserName] = useState('');
   const [editMode, setEditMode] = useState(false);
   const [editedName, setEditedName] = useState('');
+  const [settingsMode, setSettingsMode] = useState(false);
 
   useFocusEffect(useCallback(() => {
     getUser().then(u => { if (u) setUserName(u.name); });
@@ -42,6 +43,20 @@ export default function HomeScreen({ navigation }: Props) {
       setUserName(editedName.trim());
       setEditMode(false);
     }
+  };
+
+  const handleLogout = () => {
+    Alert.alert('Log Out', 'Are you sure you want to log out?', [
+      { text: 'Cancel', onPress: () => {}, style: 'cancel' },
+      {
+        text: 'Log Out',
+        onPress: () => {
+          setSettingsMode(false);
+          navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+        },
+        style: 'destructive',
+      },
+    ]);
   };
 
   return (
@@ -76,7 +91,32 @@ export default function HomeScreen({ navigation }: Props) {
         </View>
       </Modal>
 
-      <ScrollView contentContainerStyle={styles.container}>
+      {/* Settings Modal */}
+      <Modal
+        visible={settingsMode}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSettingsMode(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Settings</Text>
+            <View style={styles.settingsMenu}>
+              <Pressable style={[styles.settingsOption, styles.logoutOption]} onPress={handleLogout}>
+                <Text style={styles.settingsOptionIcon}>🚪</Text>
+                <Text style={styles.logoutOptionText}>Log Out</Text>
+              </Pressable>
+            </View>
+            <View style={styles.modalButtons}>
+              <Pressable style={[styles.modalBtn, styles.cancelBtn]} onPress={() => setSettingsMode(false)}>
+                <Text style={styles.cancelBtnText}>Close</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
@@ -88,7 +128,9 @@ export default function HomeScreen({ navigation }: Props) {
               </Pressable>
             </View>
           </View>
-          <Text style={styles.headerIcon}>💰</Text>
+          <Pressable onPress={() => setSettingsMode(true)} style={styles.settingsButton}>
+            <Text style={styles.headerIcon}>⚙️</Text>
+          </Pressable>
         </View>
 
         {/* Balance Card */}
@@ -140,7 +182,7 @@ export default function HomeScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#F9FAFB' },
-  container: { padding: 20, paddingTop: 12 },
+  scrollContainer: { padding: 20, paddingTop: 12 },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -233,8 +275,39 @@ const styles = StyleSheet.create({
   editIcon: {
     fontSize: 16,
   },
+  settingsButton: {
+    padding: 8,
+  },
   headerIcon: {
     fontSize: 28,
+  },
+  settingsMenu: {
+    marginBottom: 20,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  settingsOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    gap: 12,
+  },
+  logoutOption: {
+    backgroundColor: '#FEE2E2',
+  },
+  settingsOptionIcon: {
+    fontSize: 20,
+  },
+  settingsOptionText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  logoutOptionText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#DC2626',
   },
   balanceCard: {
     backgroundColor: '#4F46E5',
