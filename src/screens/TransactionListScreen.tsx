@@ -5,6 +5,8 @@ import { launchImageLibrary } from 'react-native-image-picker';
 import { Transaction } from '../types';
 import { getTransactions, deleteTransaction, saveTransaction } from '../storage/storage';
 
+const CATEGORIES = ['Food', 'Transport', 'School', 'Entertainment', 'Health', 'Salary', 'Allowance', 'Other'];
+
 export default function TransactionListScreen() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [editMode, setEditMode] = useState(false);
@@ -12,6 +14,8 @@ export default function TransactionListScreen() {
   
   // Edit states
   const [editAmount, setEditAmount] = useState('');
+  const [editCategory, setEditCategory] = useState('');
+  const [isCustomCategory, setIsCustomCategory] = useState(false);
   const [editNote, setEditNote] = useState('');
   const [editImage, setEditImage] = useState<string | undefined>(undefined);
 
@@ -23,7 +27,16 @@ export default function TransactionListScreen() {
     setEditingTransaction(transaction);
     setEditAmount(transaction.amount.toString());
     setEditNote(transaction.note);
-    setEditImage(transaction.image); // Load the existing image into state
+    setEditImage(transaction.image);
+    
+    // Check if category is one of the defaults
+    if (CATEGORIES.includes(transaction.category)) {
+      setEditCategory(transaction.category);
+      setIsCustomCategory(false);
+    } else {
+      setEditCategory(transaction.category);
+      setIsCustomCategory(true);
+    }
     setEditMode(true);
   };
 
@@ -31,7 +44,7 @@ export default function TransactionListScreen() {
     const result = await launchImageLibrary({
       mediaType: 'photo',
       quality: 0.8,
-      selectionLimit: 1, // Ensure only one image is picked
+      selectionLimit: 1,
     });
 
     if (result.errorCode) {
@@ -40,11 +53,8 @@ export default function TransactionListScreen() {
     }
 
     if (!result.didCancel && result.assets && result.assets.length > 0) {
-      // The URI might be undefined depending on platform specifics, so we check for it
       const uri = result.assets[0].uri;
-      if (uri) {
-        setEditImage(uri);
-      }
+      if (uri) setEditImage(uri);
     }
   };
 
@@ -54,18 +64,21 @@ export default function TransactionListScreen() {
       Alert.alert('Invalid Amount', 'Please enter a valid amount.');
       return;
     }
+    if (!editCategory.trim()) {
+      Alert.alert('Invalid Category', 'Please select or enter a category.');
+      return;
+    }
     
     const updatedTransaction: Transaction = {
-      ...editingTransaction, // Spreads original data, including id and date
+      ...editingTransaction,
       amount: Number(editAmount),
+      category: editCategory.trim(),
       note: editNote.trim(),
-      image: editImage, // Save the updated or removed image
+      image: editImage,
     };
     
-    // Pass directly to saveTransaction (which now handles updates in-place)
     await saveTransaction(updatedTransaction);
     
-    // Reload the transactions list
     const txs = await getTransactions();
     setTransactions([...txs].reverse());
     
@@ -86,62 +99,58 @@ export default function TransactionListScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      {/* Edit Modal */}
-      <Modal
-        visible={editMode}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setEditMode(false)}
-      >
+      <Modal visible={editMode} transparent animationType="fade" onRequestClose={() => setEditMode(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Edit Transaction</Text>
             <ScrollView showsVerticalScrollIndicator={false}>
               
-              {/* Image Editor Section */}
               <Text style={styles.modalLabel}>Attachment</Text>
               {editImage ? (
                 <View>
                   <Image source={{ uri: editImage }} style={styles.modalImage} />
                   <View style={styles.imageActionButtons}>
-                    <Pressable onPress={handlePickImage} style={styles.imageActionBtn}>
-                      <Text style={styles.imageActionText}>Change Image</Text>
-                    </Pressable>
-                    <Pressable onPress={() => setEditImage(undefined)} style={[styles.imageActionBtn, styles.removeBtn]}>
-                      <Text style={styles.removeBtnText}>Remove</Text>
-                    </Pressable>
+                    <Pressable onPress={handlePickImage} style={styles.imageActionBtn}><Text style={styles.imageActionText}>Change</Text></Pressable>
+                    <Pressable onPress={() => setEditImage(undefined)} style={[styles.imageActionBtn, styles.removeBtn]}><Text style={styles.removeBtnText}>Remove</Text></Pressable>
                   </View>
                 </View>
               ) : (
-                <Pressable style={styles.addImageBtn} onPress={handlePickImage}>
-                  <Text style={styles.addImageBtnText}>+ Add Image</Text>
-                </Pressable>
+                <Pressable style={styles.addImageBtn} onPress={handlePickImage}><Text style={styles.addImageBtnText}>+ Add Image</Text></Pressable>
+              )}
+
+              <Text style={styles.modalLabel}>Category</Text>
+              <View style={styles.categoryGrid}>
+                {CATEGORIES.map((cat) => (
+                  <Pressable
+                    key={cat}
+                    style={[styles.catBtn, editCategory === cat && !isCustomCategory ? styles.catBtnActive : null]}
+                    onPress={() => { setEditCategory(cat); setIsCustomCategory(cat === 'Other'); }}
+                  >
+                    <Text style={[styles.catBtnText, editCategory === cat && !isCustomCategory ? styles.catBtnTextActive : null]}>{cat}</Text>
+                  </Pressable>
+                ))}
+              </View>
+
+              {isCustomCategory && (
+                <TextInput
+                  style={[styles.modalInput, { marginTop: 10 }]}
+                  value={editCategory === 'Other' ? '' : editCategory}
+                  onChangeText={setEditCategory}
+                  placeholder="Enter custom category"
+                  autoFocus
+                />
               )}
 
               <Text style={styles.modalLabel}>Amount (PHP)</Text>
-              <TextInput
-                style={styles.modalInput}
-                value={editAmount}
-                onChangeText={setEditAmount}
-                keyboardType="numeric"
-              />
+              <TextInput style={styles.modalInput} value={editAmount} onChangeText={setEditAmount} keyboardType="numeric" />
               
               <Text style={styles.modalLabel}>Note</Text>
-              <TextInput
-                style={[styles.modalInput, styles.modalTextarea]}
-                value={editNote}
-                onChangeText={setEditNote}
-                multiline
-              />
+              <TextInput style={[styles.modalInput, styles.modalTextarea]} value={editNote} onChangeText={setEditNote} multiline />
             </ScrollView>
             
             <View style={styles.modalButtons}>
-              <Pressable style={[styles.modalBtn, styles.cancelBtn]} onPress={() => setEditMode(false)}>
-                <Text style={styles.cancelBtnText}>Cancel</Text>
-              </Pressable>
-              <Pressable style={[styles.modalBtn, styles.saveBtn]} onPress={handleSaveEdit}>
-                <Text style={styles.saveBtnText}>Save</Text>
-              </Pressable>
+              <Pressable style={[styles.modalBtn, styles.cancelBtn]} onPress={() => setEditMode(false)}><Text style={styles.cancelBtnText}>Cancel</Text></Pressable>
+              <Pressable style={[styles.modalBtn, styles.saveBtn]} onPress={handleSaveEdit}><Text style={styles.saveBtnText}>Save</Text></Pressable>
             </View>
           </View>
         </View>
@@ -154,9 +163,7 @@ export default function TransactionListScreen() {
         ListEmptyComponent={<Text style={styles.empty}>No transactions yet.</Text>}
         renderItem={({ item }) => (
           <View style={styles.card}>
-            {item.image && (
-              <Image source={{ uri: item.image }} style={styles.cardImage} />
-            )}
+            {item.image && <Image source={{ uri: item.image }} style={styles.cardImage} />}
             <View style={styles.cardContent}>
               <View style={styles.cardLeft}>
                 <Text style={styles.category}>{item.category}</Text>
@@ -167,32 +174,10 @@ export default function TransactionListScreen() {
                 <Text style={[styles.amount, { color: item.type === 'income' ? '#10B981' : '#EF4444' }]}>
                   {item.type === 'income' ? '+' : '-'}₱{item.amount.toFixed(2)}
                 </Text>
-                
-                {/* Updated Action Buttons */}
                 <View style={styles.actionButtons}>
-                  <Pressable 
-                    onPress={() => handleEdit(item)}
-                    style={({ pressed }) => [
-                      styles.actionBtn, 
-                      styles.editBtn,
-                      pressed && styles.buttonPressed 
-                    ]}
-                  >
-                    <Text style={styles.editText}>Edit</Text>
-                  </Pressable>
-                  
-                  <Pressable 
-                    onPress={() => handleDelete(item.id)}
-                    style={({ pressed }) => [
-                      styles.actionBtn, 
-                      styles.deleteBtn,
-                      pressed && styles.buttonPressed
-                    ]}
-                  >
-                    <Text style={styles.deleteText}>Delete</Text>
-                  </Pressable>
+                  <Pressable onPress={() => handleEdit(item)} style={[styles.actionBtn, styles.editBtn]}><Text style={styles.editText}>Edit</Text></Pressable>
+                  <Pressable onPress={() => handleDelete(item.id)} style={[styles.actionBtn, styles.deleteBtn]}><Text style={styles.deleteText}>Delete</Text></Pressable>
                 </View>
-
               </View>
             </View>
           </View>
@@ -203,160 +188,47 @@ export default function TransactionListScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe:      { flex: 1, backgroundColor: '#F9FAFB' },
-  list:      { padding: 16 },
-  empty:     { textAlign: 'center', color: '#aaa', marginTop: 60, fontSize: 15 },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
-    maxHeight: '90%',
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#1F2937',
-    marginBottom: 16,
-  },
-  modalLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#555',
-    marginBottom: 8,
-    marginTop: 16,
-  },
-  modalInput: {
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 10,
-    padding: 12,
-    fontSize: 15,
-  },
-  modalTextarea: {
-    height: 80,
-    textAlignVertical: 'top',
-  },
-  modalImage: {
-    width: '100%',
-    height: 200,
-    borderRadius: 12,
-    marginBottom: 12,
-  },
-  imageActionButtons: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 8,
-  },
-  imageActionBtn: {
-    flex: 1,
-    backgroundColor: '#F3F4F6',
-    paddingVertical: 10,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  removeBtn: {
-    backgroundColor: '#FEF2F2',
-  },
-  imageActionText: {
-    color: '#4F46E5',
-    fontWeight: '600',
-    fontSize: 13,
-  },
-  removeBtnText: {
-    color: '#EF4444',
-    fontWeight: '600',
-    fontSize: 13,
-  },
-  addImageBtn: {
-    backgroundColor: '#F3F4F6',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderStyle: 'dashed',
-    borderRadius: 12,
-    height: 100,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  addImageBtnText: {
-    color: '#6B7280',
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 20,
-  },
-  modalBtn: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  cancelBtn: {
-    backgroundColor: '#F3F4F6',
-  },
-  cancelBtnText: {
-    color: '#6B7280',
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  saveBtn: {
-    backgroundColor: '#4F46E5',
-  },
-  saveBtnText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 14,
-  },
-  card:      { backgroundColor: '#fff', borderRadius: 12, marginBottom: 10, overflow: 'hidden',
-               borderWidth: 1, borderColor: '#E5E7EB' },
+  safe: { flex: 1, backgroundColor: '#F9FAFB' },
+  list: { padding: 16 },
+  empty: { textAlign: 'center', color: '#aaa', marginTop: 60, fontSize: 15 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.5)', justifyContent: 'flex-end' },
+  modalContent: { backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, maxHeight: '90%' },
+  modalTitle: { fontSize: 18, fontWeight: '800', color: '#1F2937', marginBottom: 16 },
+  modalLabel: { fontSize: 12, fontWeight: '600', color: '#555', marginBottom: 8, marginTop: 16 },
+  modalInput: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#ddd', borderRadius: 10, padding: 12, fontSize: 15 },
+  modalTextarea: { height: 80, textAlignVertical: 'top' },
+  modalImage: { width: '100%', height: 200, borderRadius: 12, marginBottom: 12 },
+  imageActionButtons: { flexDirection: 'row', gap: 12, marginBottom: 8 },
+  imageActionBtn: { flex: 1, backgroundColor: '#F3F4F6', paddingVertical: 10, borderRadius: 8, alignItems: 'center' },
+  removeBtn: { backgroundColor: '#FEF2F2' },
+  imageActionText: { color: '#4F46E5', fontWeight: '600', fontSize: 13 },
+  removeBtnText: { color: '#EF4444', fontWeight: '600', fontSize: 13 },
+  addImageBtn: { backgroundColor: '#F3F4F6', borderWidth: 1, borderColor: '#E5E7EB', borderStyle: 'dashed', borderRadius: 12, height: 100, justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
+  addImageBtnText: { color: '#6B7280', fontWeight: '600', fontSize: 14 },
+  categoryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
+  catBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, backgroundColor: '#F3F4F6', borderWidth: 1, borderColor: '#E5E7EB' },
+  catBtnActive: { backgroundColor: '#4F46E5', borderColor: '#4F46E5' },
+  catBtnText: { fontSize: 12, fontWeight: '600', color: '#4B5563' },
+  catBtnTextActive: { color: '#fff' },
+  modalButtons: { flexDirection: 'row', gap: 12, marginTop: 20 },
+  modalBtn: { flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center' },
+  cancelBtn: { backgroundColor: '#F3F4F6' },
+  cancelBtnText: { color: '#6B7280', fontWeight: '600', fontSize: 14 },
+  saveBtn: { backgroundColor: '#4F46E5' },
+  saveBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+  card: { backgroundColor: '#fff', borderRadius: 12, marginBottom: 10, borderWidth: 1, borderColor: '#E5E7EB', overflow: 'hidden' },
   cardImage: { width: '100%', height: 150 },
   cardContent: { padding: 16, flexDirection: 'row', justifyContent: 'space-between' },
-  cardLeft:  { flex: 1 },
+  cardLeft: { flex: 1 },
   cardRight: { alignItems: 'flex-end' },
-  category:  { fontWeight: '700', fontSize: 15, color: '#1a1a2e' },
-  note:      { fontSize: 13, color: '#888', marginTop: 2 },
-  date:      { fontSize: 12, color: '#aaa', marginTop: 4 },
-  amount:    { fontWeight: '700', fontSize: 15 },
-  
-  actionButtons: { 
-    flexDirection: 'row', 
-    gap: 10, 
-    marginTop: 14 
-  },
-  actionBtn: {
-    paddingVertical: 8,    
-    paddingHorizontal: 16, 
-    borderRadius: 8,       
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  buttonPressed: {
-    opacity: 0.6,          
-  },
-  editBtn: {
-    backgroundColor: '#EEF2FF', 
-  },
-  deleteBtn: {
-    backgroundColor: '#FEF2F2', 
-  },
-  editText: { 
-    color: '#4F46E5', 
-    fontSize: 13, 
-    fontWeight: '700' 
-  },
-  deleteText: { 
-    color: '#EF4444', 
-    fontSize: 13, 
-    fontWeight: '700' 
-  },
+  category: { fontWeight: '700', fontSize: 15, color: '#1a1a2e' },
+  note: { fontSize: 13, color: '#888', marginTop: 2 },
+  date: { fontSize: 12, color: '#aaa', marginTop: 4 },
+  amount: { fontWeight: '700', fontSize: 15 },
+  actionButtons: { flexDirection: 'row', gap: 10, marginTop: 14 },
+  actionBtn: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
+  editBtn: { backgroundColor: '#EEF2FF' },
+  deleteBtn: { backgroundColor: '#FEF2F2' },
+  editText: { color: '#4F46E5', fontSize: 13, fontWeight: '700' },
+  deleteText: { color: '#EF4444', fontSize: 13, fontWeight: '700' },
 });
