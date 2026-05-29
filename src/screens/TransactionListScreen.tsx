@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { SafeAreaView, View, Text, FlatList, Pressable, StyleSheet, Alert, Modal, Image, TextInput, ScrollView } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { launchImageLibrary } from 'react-native-image-picker';
 import { Transaction } from '../types';
 import { getTransactions, deleteTransaction, saveTransaction } from '../storage/storage';
 
@@ -8,8 +9,11 @@ export default function TransactionListScreen() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [editMode, setEditMode] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  
+  // Edit states
   const [editAmount, setEditAmount] = useState('');
   const [editNote, setEditNote] = useState('');
+  const [editImage, setEditImage] = useState<string | undefined>(undefined);
 
   useFocusEffect(useCallback(() => {
     getTransactions().then(txs => setTransactions([...txs].reverse()));
@@ -19,7 +23,29 @@ export default function TransactionListScreen() {
     setEditingTransaction(transaction);
     setEditAmount(transaction.amount.toString());
     setEditNote(transaction.note);
+    setEditImage(transaction.image); // Load the existing image into state
     setEditMode(true);
+  };
+
+  const handlePickImage = async () => {
+    const result = await launchImageLibrary({
+      mediaType: 'photo',
+      quality: 0.8,
+      selectionLimit: 1, // Ensure only one image is picked
+    });
+
+    if (result.errorCode) {
+      Alert.alert('Error', result.errorMessage || 'Failed to pick image');
+      return;
+    }
+
+    if (!result.didCancel && result.assets && result.assets.length > 0) {
+      // The URI might be undefined depending on platform specifics, so we check for it
+      const uri = result.assets[0].uri;
+      if (uri) {
+        setEditImage(uri);
+      }
+    }
   };
 
   const handleSaveEdit = async () => {
@@ -33,6 +59,7 @@ export default function TransactionListScreen() {
       ...editingTransaction,
       amount: Number(editAmount),
       note: editNote.trim(),
+      image: editImage, // Save the updated or removed image
     };
     
     await deleteTransaction(editingTransaction.id);
@@ -51,7 +78,6 @@ export default function TransactionListScreen() {
       { text: 'Cancel', style: 'cancel' },
       { text: 'Delete', style: 'destructive', onPress: async () => {
         await deleteTransaction(id);
-        // Reload the transactions list
         const txs = await getTransactions();
         setTransactions([...txs].reverse());
       }},
@@ -70,10 +96,28 @@ export default function TransactionListScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Edit Transaction</Text>
-            <ScrollView>
-              {editingTransaction?.image && (
-                <Image source={{ uri: editingTransaction.image }} style={styles.modalImage} />
+            <ScrollView showsVerticalScrollIndicator={false}>
+              
+              {/* Image Editor Section */}
+              <Text style={styles.modalLabel}>Attachment</Text>
+              {editImage ? (
+                <View>
+                  <Image source={{ uri: editImage }} style={styles.modalImage} />
+                  <View style={styles.imageActionButtons}>
+                    <Pressable onPress={handlePickImage} style={styles.imageActionBtn}>
+                      <Text style={styles.imageActionText}>Change Image</Text>
+                    </Pressable>
+                    <Pressable onPress={() => setEditImage(undefined)} style={[styles.imageActionBtn, styles.removeBtn]}>
+                      <Text style={styles.removeBtnText}>Remove</Text>
+                    </Pressable>
+                  </View>
+                </View>
+              ) : (
+                <Pressable style={styles.addImageBtn} onPress={handlePickImage}>
+                  <Text style={styles.addImageBtnText}>+ Add Image</Text>
+                </Pressable>
               )}
+
               <Text style={styles.modalLabel}>Amount (PHP)</Text>
               <TextInput
                 style={styles.modalInput}
@@ -81,6 +125,7 @@ export default function TransactionListScreen() {
                 onChangeText={setEditAmount}
                 keyboardType="numeric"
               />
+              
               <Text style={styles.modalLabel}>Note</Text>
               <TextInput
                 style={[styles.modalInput, styles.modalTextarea]}
@@ -89,6 +134,7 @@ export default function TransactionListScreen() {
                 multiline
               />
             </ScrollView>
+            
             <View style={styles.modalButtons}>
               <Pressable style={[styles.modalBtn, styles.cancelBtn]} onPress={() => setEditMode(false)}>
                 <Text style={styles.cancelBtnText}>Cancel</Text>
@@ -118,8 +164,7 @@ export default function TransactionListScreen() {
                 <Text style={styles.date}>{new Date(item.date).toLocaleDateString()}</Text>
               </View>
               <View style={styles.cardRight}>
-                <Text style={[styles.amount,
-                  { color: item.type === 'income' ? '#10B981' : '#EF4444' }]}>
+                <Text style={[styles.amount, { color: item.type === 'income' ? '#10B981' : '#EF4444' }]}>
                   {item.type === 'income' ? '+' : '-'}₱{item.amount.toFixed(2)}
                 </Text>
                 <View style={styles.actionButtons}>
@@ -184,7 +229,48 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 200,
     borderRadius: 12,
-    marginBottom: 16,
+    marginBottom: 12,
+  },
+  imageActionButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 8,
+  },
+  imageActionBtn: {
+    flex: 1,
+    backgroundColor: '#F3F4F6',
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  removeBtn: {
+    backgroundColor: '#FEF2F2',
+  },
+  imageActionText: {
+    color: '#4F46E5',
+    fontWeight: '600',
+    fontSize: 13,
+  },
+  removeBtnText: {
+    color: '#EF4444',
+    fontWeight: '600',
+    fontSize: 13,
+  },
+  addImageBtn: {
+    backgroundColor: '#F3F4F6',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderStyle: 'dashed',
+    borderRadius: 12,
+    height: 100,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  addImageBtnText: {
+    color: '#6B7280',
+    fontWeight: '600',
+    fontSize: 14,
   },
   modalButtons: {
     flexDirection: 'row',
