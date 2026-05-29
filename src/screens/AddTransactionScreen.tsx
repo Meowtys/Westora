@@ -15,7 +15,7 @@ export default function AddTransactionScreen({ navigation }: Props) {
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState('Food');
   const [note, setNote] = useState('');
-  const [image, setImage] = useState<string | null>(null);
+  const [image, setImage] = useState<string | undefined>(undefined);
 
   const handleTakePhoto = () => {
     launchCamera({ mediaType: 'photo', saveToPhotos: true }, (response) => {
@@ -44,7 +44,7 @@ export default function AddTransactionScreen({ navigation }: Props) {
   };
 
   const handleRemoveImage = () => {
-    setImage(null);
+    setImage(undefined);
   };
 
   const handleSave = async () => {
@@ -59,6 +59,7 @@ export default function AddTransactionScreen({ navigation }: Props) {
       category,
       note: note.trim(),
       date: new Date().toISOString(),
+      image,
     });
     navigation.goBack();
   };

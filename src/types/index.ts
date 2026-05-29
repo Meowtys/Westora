@@ -7,6 +7,7 @@ export type Transaction = {
   category: string;
   note: string;
   date: string;
+  image?: string;
 };
 
 export type RootStackParamList = {
