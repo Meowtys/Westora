@@ -167,14 +167,32 @@ export default function TransactionListScreen() {
                 <Text style={[styles.amount, { color: item.type === 'income' ? '#10B981' : '#EF4444' }]}>
                   {item.type === 'income' ? '+' : '-'}₱{item.amount.toFixed(2)}
                 </Text>
+                
+                {/* Updated Action Buttons */}
                 <View style={styles.actionButtons}>
-                  <Pressable onPress={() => handleEdit(item)}>
-                    <Text style={styles.edit}>Edit</Text>
+                  <Pressable 
+                    onPress={() => handleEdit(item)}
+                    style={({ pressed }) => [
+                      styles.actionBtn, 
+                      styles.editBtn,
+                      pressed && styles.buttonPressed 
+                    ]}
+                  >
+                    <Text style={styles.editText}>Edit</Text>
                   </Pressable>
-                  <Pressable onPress={() => handleDelete(item.id)}>
-                    <Text style={styles.delete}>Delete</Text>
+                  
+                  <Pressable 
+                    onPress={() => handleDelete(item.id)}
+                    style={({ pressed }) => [
+                      styles.actionBtn, 
+                      styles.deleteBtn,
+                      pressed && styles.buttonPressed
+                    ]}
+                  >
+                    <Text style={styles.deleteText}>Delete</Text>
                   </Pressable>
                 </View>
+
               </View>
             </View>
           </View>
@@ -309,7 +327,37 @@ const styles = StyleSheet.create({
   note:      { fontSize: 13, color: '#888', marginTop: 2 },
   date:      { fontSize: 12, color: '#aaa', marginTop: 4 },
   amount:    { fontWeight: '700', fontSize: 15 },
-  actionButtons: { flexDirection: 'row', gap: 12, marginTop: 8 },
-  edit:      { color: '#4F46E5', fontSize: 13, fontWeight: '600' },
-  delete:    { color: '#EF4444', fontSize: 13, fontWeight: '600' },
+  
+  // Updated Action Button Styles
+  actionButtons: { 
+    flexDirection: 'row', 
+    gap: 10, 
+    marginTop: 14 
+  },
+  actionBtn: {
+    paddingVertical: 8,    
+    paddingHorizontal: 16, 
+    borderRadius: 8,       
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  buttonPressed: {
+    opacity: 0.6,          
+  },
+  editBtn: {
+    backgroundColor: '#EEF2FF', 
+  },
+  deleteBtn: {
+    backgroundColor: '#FEF2F2', 
+  },
+  editText: { 
+    color: '#4F46E5', 
+    fontSize: 13, 
+    fontWeight: '700' 
+  },
+  deleteText: { 
+    color: '#EF4444', 
+    fontSize: 13, 
+    fontWeight: '700' 
+  },
 });
