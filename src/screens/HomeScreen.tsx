@@ -3,7 +3,7 @@ import { SafeAreaView, View, Text, Pressable, StyleSheet, ScrollView, Modal, Tex
 import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types';
-import { getTransactions, getUser, saveUser } from '../storage/storage';
+import { getTransactions, getCurrentUser, setCurrentUser, updateUser, UserAccount } from '../storage/storage';
 
 type Props = { navigation: NativeStackNavigationProp<RootStackParamList, 'Home'> };
 
@@ -12,15 +12,22 @@ export default function HomeScreen({ navigation }: Props) {
   const [income, setIncome] = useState(0);
   const [expense, setExpense] = useState(0);
   const [userName, setUserName] = useState('');
+  const [currentUser, setCurrentUserObject] = useState<UserAccount | null>(null);
   const [editMode, setEditMode] = useState(false);
   const [editedName, setEditedName] = useState('');
   const [settingsMode, setSettingsMode] = useState(false);
 
   useFocusEffect(useCallback(() => {
-    getUser().then(u => { if (u) setUserName(u.name); });
+    getCurrentUser().then((u: UserAccount | null) => { 
+      if (u) {
+        setUserName(u.name);
+        setCurrentUserObject(u);
+      } 
+    });
+    
     getTransactions().then(txs => {
-      const inc = txs.filter(t => t.type === 'income').reduce((a, t) => a + t.amount, 0);
-      const exp = txs.filter(t => t.type === 'expense').reduce((a, t) => a + t.amount, 0);
+      const inc = txs.filter(t => t.type === 'income').reduce((a: number, t) => a + t.amount, 0);
+      const exp = txs.filter(t => t.type === 'expense').reduce((a: number, t) => a + t.amount, 0);
       setIncome(inc);
       setExpense(exp);
       setBalance(inc - exp);
@@ -37,10 +44,12 @@ export default function HomeScreen({ navigation }: Props) {
       Alert.alert('Error', 'Name cannot be empty');
       return;
     }
-    const user = await getUser();
-    if (user) {
-      await saveUser(editedName.trim(), user.pin);
-      setUserName(editedName.trim());
+    
+    if (currentUser) {
+      const updatedUser = { ...currentUser, name: editedName.trim() };
+      await updateUser(updatedUser);
+      setUserName(updatedUser.name);
+      setCurrentUserObject(updatedUser);
       setEditMode(false);
     }
   };
@@ -50,8 +59,9 @@ export default function HomeScreen({ navigation }: Props) {
       { text: 'Cancel', onPress: () => {}, style: 'cancel' },
       {
         text: 'Log Out',
-        onPress: () => {
+        onPress: async () => {
           setSettingsMode(false);
+          await setCurrentUser(null); // Clear active user session
           navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
         },
         style: 'destructive',
@@ -255,7 +265,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    maxWidth: '50%',
+    maxWidth: '85%',
   },
   editButton: {
     padding: 4,
